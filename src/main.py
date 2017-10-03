@@ -17,7 +17,8 @@ APP_TOKEN = "DjZ1QvFkXs29oV7hayqW08BVk"
 TIMEOUT = 120
 
 # configure batch size
-BATCH_SIZE = 5000
+# NOTE: the max number of file descriptors is 1024
+BATCH_SIZE = math.ceil(TOTAL_ROWS / 768)
 
 
 def get_taxi_data(**kwargs):
@@ -26,7 +27,7 @@ def get_taxi_data(**kwargs):
         try:
             results = client.get(DATASET_ID, **kwargs)
             break
-        except ConnectionError:
+        except Exception:
             pass
     return results
 
@@ -41,14 +42,20 @@ async def get_taxi_data_async(loop, **kwargs):
 
 def main():
     ioloop = asyncio.get_event_loop()
-    tasks = [
-        ioloop.create_task(
-            get_taxi_data_async(ioloop, limit=BATCH_SIZE,
-                                offset=i * BATCH_SIZE)
-        )
-        for i in range(math.ceil(TOTAL_ROWS / BATCH_SIZE))
-    ]
-    ioloop.run_until_complete(asyncio.wait(tasks))
+    task_batch_size = 4
+    for n in range(task_batch_size):
+        print("Starting task batch {}".format(n + 1))
+        tasks = [
+            ioloop.create_task(
+                get_taxi_data_async(ioloop, limit=BATCH_SIZE,
+                                    offset=i * BATCH_SIZE)
+            )
+            for i in range(
+                n * math.ceil(TOTAL_ROWS / BATCH_SIZE) // task_batch_size,
+                (n + 1) * math.ceil(TOTAL_ROWS / BATCH_SIZE) // task_batch_size,
+            )
+        ]
+        ioloop.run_until_complete(asyncio.wait(tasks))
     ioloop.close()
 
 if __name__ == '__main__':

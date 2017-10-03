@@ -18,7 +18,8 @@ TIMEOUT = 120
 
 # configure batch size
 # NOTE: the max number of file descriptors is 1024
-BATCH_SIZE = math.ceil(TOTAL_ROWS / 768)
+NUM_TASKS = 5
+BATCH_SIZE = 20000
 
 
 def get_taxi_data(**kwargs):
@@ -42,20 +43,19 @@ async def get_taxi_data_async(loop, **kwargs):
 
 def main():
     ioloop = asyncio.get_event_loop()
-    task_batch_size = 4
-    for n in range(task_batch_size):
+    for n in range(NUM_TASKS):
         print("Starting task batch {}".format(n + 1))
-        tasks = [
+        subtasks = [
             ioloop.create_task(
                 get_taxi_data_async(ioloop, limit=BATCH_SIZE,
                                     offset=i * BATCH_SIZE)
             )
             for i in range(
-                n * math.ceil(TOTAL_ROWS / BATCH_SIZE) // task_batch_size,
-                (n + 1) * math.ceil(TOTAL_ROWS / BATCH_SIZE) // task_batch_size,
+                n * math.ceil(TOTAL_ROWS / BATCH_SIZE) // NUM_TASKS,
+                (n + 1) * math.ceil(TOTAL_ROWS / BATCH_SIZE) // NUM_TASKS,
             )
         ]
-        ioloop.run_until_complete(asyncio.wait(tasks))
+        ioloop.run_until_complete(asyncio.wait(subtasks))
     ioloop.close()
 
 if __name__ == '__main__':

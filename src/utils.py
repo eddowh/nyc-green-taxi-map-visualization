@@ -102,3 +102,31 @@ def reduce_taxi_df_memory_usage(df):
                                                 format='%Y-%m-%dT%H:%M:%S.%f')
 
     return df
+
+
+def mem_usage(pandas_obj):
+    """
+    Displays memory usage of a dataframe or series.
+
+    NOTE: not authored by me (Eddo W. Hintoso).
+
+    Courtesy of Josh Devlin from DataQuest.
+    Source: <https://www.dataquest.io/blog/pandas-big-data/>
+
+    Parameters
+    ----------
+    pandas_obj : pandas.DataFrame, pandas.Series
+        The pandas object (either a DataFrame or Series) that we will
+        calculate the memory usage of.
+
+    Returns
+    -------
+    usage_mb : str
+        The string representation of the memory usage in megabytes (MB).
+    """
+    if isinstance(pandas_obj, pd.DataFrame):
+        usage_b = pandas_obj.memory_usage(deep=True).sum()
+    else:  # we assume if not a df it's a series
+        usage_b = pandas_obj.memory_usage(deep=True)
+    usage_mb = usage_b / 1024 ** 2  # convert bytes to megabytes
+    return "{:03.2f} MB".format(usage_mb)

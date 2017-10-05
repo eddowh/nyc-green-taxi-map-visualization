@@ -33,6 +33,17 @@ TMP_DATA_SUBDIRNAME = os.path.join(TMP_DATA_DIRNAME, str(BATCH_SIZE))
 
 
 def get_taxi_data(**kwargs):
+    """
+    Synchronously get 2016 NYC Green Taxi Trips data.
+
+    Parameters
+    ----------
+    **kwargs : See <https://github.com/xmunoz/sodapy#getdataset_identifier-content_typejson-kwargs>
+
+    Returns
+    -------
+    results : An array of JSON-like objects.
+    """
     while True:
         client = Socrata(SOURCE_DOMAIN, app_token=APP_TOKEN, timeout=TIMEOUT)
         try:

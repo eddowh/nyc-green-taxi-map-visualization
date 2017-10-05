@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from functools import reduce
+
 
 def reduce_taxi_df_memory_usage(df):
     """
@@ -29,8 +31,9 @@ def reduce_taxi_df_memory_usage(df):
         'trip_distance',
     ]
     for colname in float_dtype_colnames:
-        df.loc[:, colname] = pd.to_numeric(df.loc[:, colname],
-                                           downcast='float')
+        if df.loc[:, colname].dtype != 'float32':
+            df.loc[:, colname] = pd.to_numeric(df.loc[:, colname],
+                                               downcast='float')
 
     # drop off / pick-up can be specified as `dolocationid` and `pulocationid`
     # instead of geographical coordinates
@@ -43,8 +46,9 @@ def reduce_taxi_df_memory_usage(df):
     if reduce(lambda a, b: a and b,
               map(lambda c: c in df.columns, do_pu_longlat_colnames)):
         for colname in do_pu_longlat_colnames:
-            df.loc[:, colname] = pd.to_numeric(df.loc[:, colname],
-                                               downcast='float')
+            if df.loc[:, colname].dtype != 'float32':
+                df.loc[:, colname] = pd.to_numeric(df.loc[:, colname],
+                                                   downcast='float')
 
     do_pu_id_colnames = [
         'dolocationid',
@@ -53,7 +57,15 @@ def reduce_taxi_df_memory_usage(df):
     if reduce(lambda x, y: x in df.columns and y in df.columns,
               do_pu_id_colnames):
         for colname in do_pu_id_colnames:
-            df.loc[:, colname] = df.loc[:, colname].astype('category')
+            try:
+                is_category = df.loc[:, colname].dtype == 'category'
+            except TypeError:
+                is_category = False
+            finally:
+                if not is_category:
+                    df.loc[:, colname] = df.loc[:, colname] \
+                        .fillna(0) \
+                        .astype('category', ordered=True)
 
     # categorical variables
     categorical_dtype_colnames = [
@@ -64,12 +76,20 @@ def reduce_taxi_df_memory_usage(df):
         'trip_type',
     ]
     for colname in categorical_dtype_colnames:
-        df.loc[:, colname] = df.loc[:, colname].astype('category')
+        try:
+            is_category = df.loc[:, colname].dtype == 'category'
+        except TypeError:
+            is_category = False
+        finally:
+            if not is_category:
+                df.loc[:, colname] = df.loc[:, colname] \
+                    .fillna(0) \
+                    .astype('category', ordered=True)
 
     # boolean variables
     if df.loc[:, 'store_and_fwd_flag'].dtype != 'bool':
-        df.loc[:, 'store_and_fwd_flag'] = df.loc[
-            :, 'store_and_fwd_flag'] == 'Y'
+        df.loc[:, 'store_and_fwd_flag'] = \
+            df.loc[:, 'store_and_fwd_flag'] == 'Y'
 
     # datetime variables
     datetime_dtype_colnames = [
@@ -77,7 +97,8 @@ def reduce_taxi_df_memory_usage(df):
         'lpep_pickup_datetime',
     ]
     for colname in datetime_dtype_colnames:
-        df.loc[:, colname] = pd.to_datetime(df.loc[:, colname],
-                                            format='%Y-%m-%dT%H:%M:%S.%f')
+        if df.loc[:, colname].dtype != 'datetime64[ns]':
+            df.loc[:, colname] = pd.to_datetime(df.loc[:, colname],
+                                                format='%Y-%m-%dT%H:%M:%S.%f')
 
     return df

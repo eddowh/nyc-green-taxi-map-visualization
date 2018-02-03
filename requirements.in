@@ -1,0 +1,3 @@
+pandas==0.22.0
+sodapy==1.4.5
+feather-format==0.4.0
